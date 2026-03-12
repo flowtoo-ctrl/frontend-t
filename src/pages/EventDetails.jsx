@@ -1,122 +1,155 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import './EventDetails.css';
+import React, { useState, useEffect, useCallback } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import axios from "axios";
+import "./EventDetails.css";
 
 export default function EventDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+
   const [event, setEvent] = useState(null);
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
 
-  useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (user) {
-      setEmail(user.email);
-    }
-    fetchEvent();
-  }, [id]);
-
-  const fetchEvent = async () => {
+  const fetchEvent = useCallback(async () => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/events/${id}`);
+      const response = await axios.get(
+        `http://localhost:5000/api/events/${id}`
+      );
+
       setEvent(response.data);
     } catch (error) {
-      console.error('Error fetching event:', error);
+      console.error("Error fetching event:", error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    if (user?.email) {
+      setEmail(user.email);
+    }
+
+    fetchEvent();
+  }, [fetchEvent]);
 
   const handleBuyTicket = async () => {
     if (!email) {
-      alert('Please enter an email address');
+      alert("Please enter your email");
       return;
     }
 
     setProcessing(true);
+
     try {
-      const user = JSON.parse(localStorage.getItem('user'));
-      const response = await axios.post('http://localhost:5000/api/payments/buy', {
-        eventId: id,
-        email: email,
-        userId: user?.id,
+      const user = JSON.parse(localStorage.getItem("user"));
+
+      const response = await axios.post(
+        "http://localhost:5000/api/payments/buy",
+        {
+          eventId: id,
+          email: email,
+          userId: user?._id || null
+        }
+      );
+
+      const { paymentData, endpoint } = response.data;
+
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = endpoint;
+
+      Object.keys(paymentData).forEach((key) => {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = key;
+        input.value = paymentData[key];
+        form.appendChild(input);
       });
 
-      if (response.data.success && response.data.paymentData && response.data.endpoint) {
-        // Create and submit form to PayFast
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = response.data.endpoint;
-
-        Object.entries(response.data.paymentData).forEach(([key, value]) => {
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = key;
-          input.value = String(value);
-          form.appendChild(input);
-        });
-
-        document.body.appendChild(form);
-        form.submit();
-      } else {
-        alert('Failed to initiate payment');
-      }
+      document.body.appendChild(form);
+      form.submit();
     } catch (error) {
-      console.error('Payment error:', error);
-      alert('Failed to process payment');
-    } finally {
+      console.error("Error initiating payment:", error);
+      alert("Error initiating payment. Please try again.");
       setProcessing(false);
     }
   };
 
   if (loading) {
-    return <div className="loading">Loading event...</div>;
+    return (
+      <div className="event-details-container">
+        <p>Loading...</p>
+      </div>
+    );
   }
 
   if (!event) {
     return (
-      <div className="not-found">
-        <h2>Event not found</h2>
-        <button onClick={() => navigate('/')}>Back to Events</button>
+      <div className="event-details-container">
+        <p>Event not found</p>
       </div>
     );
   }
 
   return (
-    <div className="event-details">
-      <button className="back-btn" onClick={() => navigate('/')}>← Back</button>
+    <div className="event-details-container">
+      <button className="back-btn" onClick={() => navigate("/")}>
+        ← Back
+      </button>
 
-      <div className="details-container">
-        <div className="event-main">
-          {event.image && <img src={event.image} alt={event.title} />}
+      <div className="event-details-content">
+        <div className="event-info">
           <h1>{event.title}</h1>
-          <p>{event.description}</p>
-          
+
+          <p className="event-description">
+            {event.description || "No description available"}
+          </p>
+
           <div className="event-meta">
-            <div>
-              <strong>📅 Date & Time</strong>
-              <p>{new Date(event.date).toLocaleString()}</p>
+            <div className="meta-item">
+              <strong>📅 Date</strong>
+              <p>
+                {event.date
+                  ? new Date(event.date).toLocaleString()
+                  : "TBA"}
+              </p>
             </div>
-            <div>
+
+            <div className="meta-item">
               <strong>📍 Location</strong>
-              <p>{event.location}</p>
+              <p>{event.location || "Unknown location"}</p>
             </div>
-            <div>
+
+            <div className="meta-item">
+              <strong>💰 Price</strong>
+              <p>
+                {event.price
+                  ? `R ${event.price.toFixed(2)}`
+                  : "Free"}
+              </p>
+            </div>
+
+            <div className="meta-item">
               <strong>🎫 Tickets Available</strong>
-              <p>{event.ticketsAvailable}</p>
+              <p>{event.ticketsAvailable ?? "Unlimited"}</p>
             </div>
           </div>
         </div>
 
         <div className="checkout-card">
           <h3>Purchase Ticket</h3>
-          <div className="price">R {event.price.toFixed(2)}</div>
-          
+
+          <div className="price">
+            {event.price ? `R ${event.price.toFixed(2)}` : "Free"}
+          </div>
+
           <div className="form-group">
             <label>Email Address</label>
+
             <input
               type="email"
               value={email}
@@ -131,7 +164,7 @@ export default function EventDetails() {
             onClick={handleBuyTicket}
             disabled={processing || event.ticketsAvailable <= 0}
           >
-            {processing ? 'Processing...' : 'Proceed to Payment'}
+            {processing ? "Processing..." : "Proceed to Payment"}
           </button>
 
           {event.ticketsAvailable <= 0 && (
@@ -146,5 +179,3 @@ export default function EventDetails() {
     </div>
   );
 }
-
-
