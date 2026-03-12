@@ -1,0 +1,55 @@
+<!-- public/ticket-purchase.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Buy Ticket</title>
+</head>
+<body>
+  <h1>Buy Ticket for Event XYZ</h1>
+  <button onclick="buyTicket()">Pay Now - R150</button>
+
+  <!-- The hidden form we auto-submit -->
+  <form id="payfastForm" method="POST"></form>
+
+  <script>
+    async function buyTicket() {
+      try {
+        const response = await fetch('/payments/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            // ← put real data here from your page / form inputs
+            eventId: "12345",
+            ticketType: "VIP",
+            quantity: 1,
+            buyerEmail: "thulani@example.com",
+            buyerName: "Thulani"
+          })
+        });
+
+        if (!response.ok) throw new Error('Failed to create payment');
+
+        const { paymentData, endpoint } = await response.json();
+
+        const form = document.getElementById('payfastForm');
+        form.action = endpoint;
+        form.innerHTML = ''; // clear previous inputs
+
+        Object.entries(paymentData).forEach(([key, value]) => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = key;
+          input.value = value;
+          form.appendChild(input);
+        });
+
+        form.submit(); // ← redirects to Payfast
+      } catch (err) {
+        alert('Something went wrong: ' + err.message);
+      }
+    }
+  </script>
+</body>
+</html>
+

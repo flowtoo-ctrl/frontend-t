@@ -1,54 +1,31 @@
-import React, { useState, useEffect } from 'react';
-import EventList from './components/EventList';
-import CreateEvent from './components/CreateEvent';
-import BuyTicket from './components/BuyTicket';
-import './App.css'; // ← make sure this import is present
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Home from './pages/Home';
+import EventDetails from './pages/EventDetails';
+import MyTickets from './pages/MyTickets';
+import PaymentSuccess from './pages/PaymentSuccess';
+import PaymentCancelled from './pages/PaymentCancelled';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
+import CreateEvent from './pages/CreateEvent';
 
 function App() {
-  const [events, setEvents] = useState([]);
-  const [selectedEvent, setSelectedEvent] = useState(null);
-
-  useEffect(() => {
-    fetch('/api/events')
-      .then(res => res.json())
-      .then(data => setEvents(data))
-      .catch(err => console.error('Failed to load events:', err));
-  }, []);
-
   return (
-    <div className="app-container">
-      <header className="app-header">
-        <h1 className="app-title">Local Events Ticketing (Pretoria MVP)</h1>
-      </header>
-
-      <main className="main-content">
-        <section className="create-event-section">
-          <CreateEvent 
-            onEventCreated={(newEvent) => setEvents([...events, newEvent])} 
-          />
-        </section>
-
-        <section className="events-section">
-          <EventList 
-            events={events} 
-            onSelect={setSelectedEvent} 
-          />
-        </section>
-
-        {selectedEvent && (
-          <div className="buy-ticket-modal-overlay">
-            <div className="buy-ticket-modal">
-              <BuyTicket 
-                event={selectedEvent} 
-                onClose={() => setSelectedEvent(null)} // optional: add close button support
-              />
-            </div>
-          </div>
-        )}
-      </main>
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/event/:id" element={<EventDetails />} />
+        <Route path="/my-tickets" element={<MyTickets />} />
+        <Route path="/success" element={<PaymentSuccess />} />
+        <Route path="/cancel" element={<PaymentCancelled />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/create-event" element={<CreateEvent />} />
+      </Routes>
+    </Router>
   );
 }
 
 export default App;
+
 

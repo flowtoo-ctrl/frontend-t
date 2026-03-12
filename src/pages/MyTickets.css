@@ -1,0 +1,134 @@
+.my-tickets {
+  min-height: 100vh;
+  background: #f8fafc;
+  padding: 2rem;
+}
+.back-btn {
+  background: none;
+  border: none;
+  color: #3b82f6;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-bottom: 2rem;
+  padding: 0;
+}
+.back-btn:hover {
+  text-decoration: underline;
+}
+.my-tickets h1 {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #1e293b;
+  margin-bottom: 2rem;
+}
+.tickets-grid {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+.ticket-card {
+  background: white;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.3s;
+}
+.ticket-card:hover {
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+}
+.ticket-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 1rem;
+}
+.ticket-header h3 {
+  font-size: 1.125rem;
+  font-weight: bold;
+  color: #1e293b;
+  margin: 0;
+  flex: 1;
+}
+.status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  margin-left: 0.5rem;
+}
+.status.paid {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.status.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+.status.cancelled {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.ticket-info {
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+}
+.ticket-info p {
+  color: #64748b;
+  margin: 0.5rem 0;
+}
+.ticket-info strong {
+  color: #1e293b;
+}
+.qr-btn {
+  width: 100%;
+  padding: 0.75rem;
+  background: #f1f5f9;
+  color: #1e293b;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.qr-btn:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+.qr-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.no-tickets {
+  max-width: 1200px;
+  margin: 0 auto;
+  text-align: center;
+  padding: 3rem 2rem;
+  background: white;
+  border-radius: 0.5rem;
+}
+.no-tickets p {
+  color: #64748b;
+  margin-bottom: 2rem;
+}
+.no-tickets button {
+  padding: 0.75rem 1.5rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+.no-tickets button:hover {
+  background: #2563eb;
+}
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-size: 1.125rem;
+  color: #64748b;
+}
