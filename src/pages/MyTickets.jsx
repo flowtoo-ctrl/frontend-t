@@ -1,43 +1,56 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import API_BASE_URL from "../config";
 import "./MyTickets.css";
 
 export default function MyTickets() {
+
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
   const navigate = useNavigate();
 
   const fetchTickets = useCallback(async (token) => {
-    try {
-      const response = await axios.get(
-        "http://localhost:5000/api/tickets/my",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
 
-      setTickets(response.data || []);
+    try {
+
+      const response = await axios.get(`${API_BASE_URL}/api/tickets/my`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      });
+
+      setTickets(response.data);
+
     } catch (err) {
+
       console.error("Error fetching tickets:", err);
 
       if (err.response?.status === 401) {
+
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         navigate("/login");
+
       } else {
+
         setError("Failed to load tickets");
+
       }
+
     } finally {
+
       setLoading(false);
+
     }
+
   }, [navigate]);
 
   useEffect(() => {
+
     const token = localStorage.getItem("token");
 
     if (!token) {
@@ -46,17 +59,24 @@ export default function MyTickets() {
     }
 
     fetchTickets(token);
+
   }, [fetchTickets, navigate]);
 
   const downloadTicket = (ticket) => {
-    if (!ticket.qrCode) return;
 
-    const link = document.createElement("a");
-    link.href = ticket.qrCode;
-    link.download = `ticket-${ticket._id}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    if (ticket.qrCode) {
+
+      const link = document.createElement("a");
+
+      link.href = ticket.qrCode;
+      link.download = `ticket-${ticket._id}.png`;
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+    }
+
   };
 
   if (loading) {
@@ -68,7 +88,9 @@ export default function MyTickets() {
   }
 
   return (
+
     <div className="my-tickets-container">
+
       <button className="back-btn" onClick={() => navigate("/")}>
         ← Back
       </button>
@@ -78,14 +100,25 @@ export default function MyTickets() {
       {error && <p className="error-msg">{error}</p>}
 
       {tickets.length === 0 ? (
+
         <div className="no-tickets">
+
           <p>You haven't purchased any tickets yet.</p>
-          <button onClick={() => navigate("/")}>Browse Events</button>
+
+          <button onClick={() => navigate("/")}>
+            Browse Events
+          </button>
+
         </div>
+
       ) : (
+
         <div className="tickets-grid">
+
           {tickets.map((ticket) => (
+
             <div key={ticket._id} className="ticket-card">
+
               <h3>{ticket.event?.title || "Event"}</h3>
 
               <p>
@@ -101,10 +134,10 @@ export default function MyTickets() {
               </p>
 
               <p>
-                <strong>Price:</strong>{" "}
+                <strong>Price:</strong> R{" "}
                 {ticket.event?.price
-                  ? `R ${ticket.event.price.toFixed(2)}`
-                  : "Free"}
+                  ? ticket.event.price.toFixed(2)
+                  : "0.00"}
               </p>
 
               <p>
@@ -113,13 +146,17 @@ export default function MyTickets() {
 
               <p>
                 <strong>Status:</strong>{" "}
-                <span className="status-badge">{ticket.status}</span>
+                <span className="status-badge">
+                  {ticket.status}
+                </span>
               </p>
 
               {ticket.qrCode && (
+
                 <div className="qr-code">
                   <img src={ticket.qrCode} alt="QR Code" />
                 </div>
+
               )}
 
               <button
@@ -128,10 +165,16 @@ export default function MyTickets() {
               >
                 Download QR Code
               </button>
+
             </div>
+
           ))}
+
         </div>
+
       )}
+
     </div>
+
   );
 }

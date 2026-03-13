@@ -1,166 +1,165 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import './CreateEvent.css';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import API_BASE_URL from "../config";
+import "./CreateEvent.css";
 
 export default function CreateEvent() {
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    date: '',
-    location: '',
-    price: '',
-    ticketsAvailable: '',
-    image: '',
-  });
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [date, setDate] = useState("");
+  const [location, setLocation] = useState("");
+  const [price, setPrice] = useState("");
+  const [tickets, setTickets] = useState("");
+  const [image, setImage] = useState(null);
 
-  const handleSubmit = async (e) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleCreateEvent = async (e) => {
+
     e.preventDefault();
-    setError('');
-
-    if (!formData.title || !formData.date || !formData.price || !formData.ticketsAvailable) {
-      setError('Please fill in all required fields');
-      return;
-    }
-
-    setLoading(true);
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:5000/api/events', formData, {
-        headers: { Authorization: `Bearer ${token}` },
+
+      setLoading(true);
+      setError("");
+
+      const token = localStorage.getItem("token");
+
+      const formData = new FormData();
+
+      formData.append("title", title);
+      formData.append("description", description);
+      formData.append("date", date);
+      formData.append("location", location);
+      formData.append("price", Number(price));
+      formData.append("ticketsAvailable", Number(tickets));
+      formData.append("initialTickets", Number(tickets));
+
+      if (image) {
+        formData.append("image", image);
+      }
+
+      await axios.post(`${API_BASE_URL}/api/events`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data"
+        }
       });
 
-      if (response.data._id) {
-        navigate('/');
-      }
+      alert("Event created successfully");
+
+      navigate("/");
+
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to create event. Please try again.');
+
+      console.error(err);
+      setError(err.response?.data?.error || "Failed to create event");
+
     } finally {
+
       setLoading(false);
+
     }
   };
 
   return (
+
     <div className="create-event-container">
-      <button className="back-btn" onClick={() => navigate('/')}>← Back</button>
+
+      <button className="back-btn" onClick={() => navigate("/")}>
+        ← Back
+      </button>
 
       <div className="create-event-card">
-        <h1>Create New Event</h1>
 
-        {error && <div className="error-message">{error}</div>}
+        <h2>Create Event</h2>
 
-        <form onSubmit={handleSubmit}>
+        {error && <p className="error-msg">{error}</p>}
+
+        <form onSubmit={handleCreateEvent}>
+
           <div className="form-group">
-            <label>Event Title *</label>
+            <label>Event Title</label>
             <input
               type="text"
-              name="title"
-              value={formData.title}
-              onChange={handleChange}
-              placeholder="e.g., Summer Music Festival"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
               required
-              disabled={loading}
             />
           </div>
 
           <div className="form-group">
             <label>Description</label>
             <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              placeholder="Describe your event..."
-              rows="4"
-              disabled={loading}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              required
             />
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label>Date & Time *</label>
-              <input
-                type="datetime-local"
-                name="date"
-                value={formData.date}
-                onChange={handleChange}
-                required
-                disabled={loading}
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Location</label>
-              <input
-                type="text"
-                name="location"
-                value={formData.location}
-                onChange={handleChange}
-                placeholder="e.g., Central Park, New York"
-                disabled={loading}
-              />
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label>Price (R) *</label>
-              <input
-                type="number"
-                name="price"
-                value={formData.price}
-                onChange={handleChange}
-                placeholder="0.00"
-                step="0.01"
-                min="0"
-                required
-                disabled={loading}
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Number of Tickets *</label>
-              <input
-                type="number"
-                name="ticketsAvailable"
-                value={formData.ticketsAvailable}
-                onChange={handleChange}
-                placeholder="100"
-                min="1"
-                required
-                disabled={loading}
-              />
-            </div>
           </div>
 
           <div className="form-group">
-            <label>Image URL</label>
+            <label>Date & Time</label>
             <input
-              type="url"
-              name="image"
-              value={formData.image}
-              onChange={handleChange}
-              placeholder="https://example.com/image.jpg"
-              disabled={loading}
+              type="datetime-local"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              required
             />
           </div>
 
-          <button type="submit" className="submit-btn" disabled={loading}>
-            {loading ? 'Creating Event...' : 'Create Event'}
+          <div className="form-group">
+            <label>Location</label>
+            <input
+              type="text"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Ticket Price (R)</label>
+            <input
+              type="number"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Total Tickets</label>
+            <input
+              type="number"
+              value={tickets}
+              onChange={(e) => setTickets(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Event Poster</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setImage(e.target.files[0])}
+            />
+          </div>
+
+          <button type="submit" disabled={loading}>
+            {loading ? "Creating..." : "Create Event"}
           </button>
+
         </form>
+
       </div>
+
     </div>
+
   );
 }

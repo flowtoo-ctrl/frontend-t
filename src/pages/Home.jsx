@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import API_BASE_URL from '../config';
 import './Home.css';
 
 export default function Home() {
@@ -20,7 +21,7 @@ export default function Home() {
 
   const fetchEvents = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/events');
+      const response = await axios.get('${API_BASE_URL}/api/events');
       setEvents(response.data);
     } catch (error) {
       console.error('Error fetching events:', error);
