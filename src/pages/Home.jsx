@@ -13,15 +13,17 @@ export default function Home() {
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
+
     if (token && userData) {
       setUser(JSON.parse(userData));
     }
+
     fetchEvents();
   }, []);
 
   const fetchEvents = async () => {
     try {
-      const response = await axios.get('${API_BASE_URL}/api/events');
+      const response = await axios.get(`${API_BASE_URL}/api/events`);
       setEvents(response.data);
     } catch (error) {
       console.error('Error fetching events:', error);
@@ -43,24 +45,55 @@ export default function Home() {
 
   return (
     <div className="home">
+
       {/* Header */}
       <header className="header">
         <div className="header-content">
           <h1>🎫 TicketHub</h1>
+
           <div className="header-right">
             {user ? (
               <>
                 <span className="user-email">{user.email}</span>
-                <button className="nav-btn" onClick={() => navigate('/my-tickets')}>My Tickets</button>
+
+                <button
+                  className="nav-btn"
+                  onClick={() => navigate('/my-tickets')}
+                >
+                  My Tickets
+                </button>
+
                 {user.role === 'admin' && (
-                  <button className="nav-btn" onClick={() => navigate('/create-event')}>Create Event</button>
+                  <button
+                    className="nav-btn"
+                    onClick={() => navigate('/create-event')}
+                  >
+                    Create Event
+                  </button>
                 )}
-                <button className="nav-btn logout-btn" onClick={handleLogout}>Logout</button>
+
+                <button
+                  className="nav-btn logout-btn"
+                  onClick={handleLogout}
+                >
+                  Logout
+                </button>
               </>
             ) : (
               <>
-                <button className="nav-btn" onClick={() => navigate('/login')}>Login</button>
-                <button className="nav-btn signup-btn" onClick={() => navigate('/signup')}>Sign Up</button>
+                <button
+                  className="nav-btn"
+                  onClick={() => navigate('/login')}
+                >
+                  Login
+                </button>
+
+                <button
+                  className="nav-btn signup-btn"
+                  onClick={() => navigate('/signup')}
+                >
+                  Sign Up
+                </button>
               </>
             )}
           </div>
@@ -73,44 +106,71 @@ export default function Home() {
         <p>Browse and purchase tickets for the best events in your area.</p>
       </section>
 
-      {/* Events Grid */}
+      {/* Events */}
       <section className="events-section">
         <h3>Upcoming Events</h3>
+
         {events.length === 0 ? (
           <p className="no-events">No events available at the moment.</p>
         ) : (
           <div className="events-grid">
             {events.map((event) => (
               <div key={event._id} className="event-card">
-                {event.image && <img src={event.image} alt={event.title} />}
+
+                {event.image && (
+                  <img src={event.image} alt={event.title} />
+                )}
+
                 <div className="event-content">
                   <h4>{event.title}</h4>
                   <p>{event.description}</p>
+
                   <div className="event-info">
-                    <span>📅 {new Date(event.date).toLocaleDateString()}</span>
-                    <span>📍 {event.location}</span>
-                  </div>
-                  <div className="event-footer">
-                    <span className="price">R {event.price.toFixed(2)}</span>
-                    <span className={`tickets ${event.ticketsAvailable > 0 ? 'available' : 'sold-out'}`}>
-                      {event.ticketsAvailable > 0 ? `${event.ticketsAvailable} tickets` : 'Sold Out'}
+                    <span>
+                      📅 {new Date(event.date).toLocaleDateString()}
+                    </span>
+
+                    <span>
+                      📍 {event.location}
                     </span>
                   </div>
+
+                  <div className="event-footer">
+                    <span className="price">
+                      R {event.price.toFixed(2)}
+                    </span>
+
+                    <span
+                      className={`tickets ${
+                        event.ticketsAvailable > 0
+                          ? 'available'
+                          : 'sold-out'
+                      }`}
+                    >
+                      {event.ticketsAvailable > 0
+                        ? `${event.ticketsAvailable} tickets`
+                        : 'Sold Out'}
+                    </span>
+                  </div>
+
                   <button
                     className="buy-btn"
                     disabled={event.ticketsAvailable <= 0}
                     onClick={() => navigate(`/event/${event._id}`)}
                   >
-                    {event.ticketsAvailable > 0 ? 'Buy Ticket' : 'Sold Out'}
+                    {event.ticketsAvailable > 0
+                      ? 'Buy Ticket'
+                      : 'Sold Out'}
                   </button>
                 </div>
+
               </div>
             ))}
           </div>
         )}
       </section>
+
     </div>
   );
 }
-
 
