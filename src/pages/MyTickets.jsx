@@ -1,180 +1,59 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import API_BASE_URL from "../config";
 import "./MyTickets.css";
 
 export default function MyTickets() {
-
   const [tickets, setTickets] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
   const navigate = useNavigate();
 
-  const fetchTickets = useCallback(async (token) => {
+  useEffect(() => {
+    const fetchTickets = async () => {
+      const token = localStorage.getItem("token");
 
-    try {
-
-      const response = await axios.get(`${API_BASE_URL}/api/tickets/my`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
-        }
-      });
-
-      setTickets(response.data);
-
-    } catch (err) {
-
-      console.error("Error fetching tickets:", err);
-
-      if (err.response?.status === 401) {
-
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
+      if (!token) {
         navigate("/login");
-
-      } else {
-
-        setError("Failed to load tickets");
-
+        return;
       }
 
-    } finally {
+      try {
+        const res = await axios.get(`${API_BASE_URL}/api/tickets/my`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
 
-      setLoading(false);
+        const sorted = res.data.sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        );
 
-    }
+        setTickets(sorted);
 
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchTickets();
   }, [navigate]);
 
-  useEffect(() => {
-
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      navigate("/login");
-      return;
-    }
-
-    fetchTickets(token);
-
-  }, [fetchTickets, navigate]);
-
-  const downloadTicket = (ticket) => {
-
-    if (ticket.qrCode) {
-
-      const link = document.createElement("a");
-
-      link.href = ticket.qrCode;
-      link.download = `ticket-${ticket._id}.png`;
-
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-    }
-
-  };
-
-  if (loading) {
-    return (
-      <div className="my-tickets-container">
-        <p>Loading tickets...</p>
-      </div>
-    );
-  }
-
   return (
-
     <div className="my-tickets-container">
-
-      <button className="back-btn" onClick={() => navigate("/")}>
-        ← Back
-      </button>
-
       <h1>My Tickets</h1>
 
-      {error && <p className="error-msg">{error}</p>}
+      {tickets.map(ticket => (
+        <div key={ticket._id} className="ticket-card">
+          <h3>{ticket.event?.title}</h3>
 
-      {tickets.length === 0 ? (
+          <p>Date: {new Date(ticket.event?.date).toLocaleString()}</p>
+          <p>Location: {ticket.event?.location}</p>
+          <p>Price: R {ticket.event?.price}</p>
+          <p>Ticket ID: {ticket.paymentId}</p>
+          <p>Status: {ticket.status}</p>
 
-        <div className="no-tickets">
-
-          <p>You haven't purchased any tickets yet.</p>
-
-          <button onClick={() => navigate("/")}>
-            Browse Events
-          </button>
-
+          {ticket.qrCode && <img src={ticket.qrCode} alt="QR" />}
         </div>
-
-      ) : (
-
-        <div className="tickets-grid">
-
-          {tickets.map((ticket) => (
-
-            <div key={ticket._id} className="ticket-card">
-
-              <h3>{ticket.event?.title || "Event"}</h3>
-
-              <p>
-                <strong>Date:</strong>{" "}
-                {ticket.event?.date
-                  ? new Date(ticket.event.date).toLocaleString()
-                  : "TBA"}
-              </p>
-
-              <p>
-                <strong>Location:</strong>{" "}
-                {ticket.event?.location || "Unknown"}
-              </p>
-
-              <p>
-                <strong>Price:</strong> R{" "}
-                {ticket.event?.price
-                  ? ticket.event.price.toFixed(2)
-                  : "0.00"}
-              </p>
-
-              <p>
-                <strong>Ticket ID:</strong> {ticket.paymentId}
-              </p>
-
-              <p>
-                <strong>Status:</strong>{" "}
-                <span className="status-badge">
-                  {ticket.status}
-                </span>
-              </p>
-
-              {ticket.qrCode && (
-
-                <div className="qr-code">
-                  <img src={ticket.qrCode} alt="QR Code" />
-                </div>
-
-              )}
-
-              <button
-                className="download-btn"
-                onClick={() => downloadTicket(ticket)}
-              >
-                Download QR Code
-              </button>
-
-            </div>
-
-          ))}
-
-        </div>
-
-      )}
-
+      ))}
     </div>
-
   );
 }
+

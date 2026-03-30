@@ -1,94 +1,173 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import API_BASE_URL from "../config";
 import "./CreateEvent.css";
 
+let nextTicketId = 3; // For unique IDs
+
 export default function CreateEvent() {
-
   const navigate = useNavigate();
+  const abortControllerRef = useRef(null);
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [date, setDate] = useState("");
-  const [location, setLocation] = useState("");
-  const [price, setPrice] = useState("");
-  const [tickets, setTickets] = useState("");
-  const [image, setImage] = useState(null);
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    date: "",
+    location: "",
+    image: "",
+  });
+
+  const [ticketTypes, setTicketTypes] = useState([
+    { id: 1, name: "VIP", price: "", quantity: "" },
+    { id: 2, name: "General", price: "", quantity: "" },
+  ]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleCreateEvent = async (e) => {
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
+  const handleChange = (e) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+  };
+
+  // FIXED: Immutable update
+  const handleTicketChange = (id, field, value) => {
+    setTicketTypes(prev => prev.map(ticket => 
+      ticket.id === id ? { ...ticket, [field]: value } : ticket
+    ));
+  };
+
+  const addTicketType = () => {
+    setTicketTypes(prev => [
+      ...prev, 
+      { id: nextTicketId++, name: "", price: "", quantity: "" }
+    ]);
+  };
+
+  const removeTicketType = (id) => {
+    if (ticketTypes.length === 1) {
+      setError("At least one ticket type is required");
+      return;
+    }
+    setTicketTypes(prev => prev.filter(t => t.id !== id));
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    if (!formData.title || !formData.date || !formData.location) {
+      setError("Please fill in Title, Date, and Location");
+      setLoading(false);
+      return;
+    }
+
+    // FIXED: Safe number parsing with validation
+    const validTicketTypes = ticketTypes
+      .filter(t => t.name.trim() && t.price && t.quantity)
+      .map(t => {
+        const price = parseFloat(t.price);
+        const quantity = parseInt(t.quantity, 10); // FIXED: Added radix
+        
+        if (isNaN(price) || isNaN(quantity) || price < 0 || quantity < 1) {
+          return null;
+        }
+        return {
+          name: t.name.trim(),
+          price,
+          quantity
+        };
+      })
+      .filter(Boolean);
+
+    if (validTicketTypes.length === 0) {
+      setError("Please add at least one valid ticket type");
+      setLoading(false);
+      return;
+    }
 
     try {
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
 
-      setLoading(true);
-      setError("");
-
-      const token = localStorage.getItem("token");
-
-      const formData = new FormData();
-
-      formData.append("title", title);
-      formData.append("description", description);
-      formData.append("date", date);
-      formData.append("location", location);
-      formData.append("price", Number(price));
-      formData.append("ticketsAvailable", Number(tickets));
-      formData.append("initialTickets", Number(tickets));
-
-      if (image) {
-        formData.append("image", image);
+      if (!user.id && !user._id) {
+        setError("You must be logged in to create an event");
+        setLoading(false);
+        return;
       }
 
-      await axios.post(`${API_BASE_URL}/api/events`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data"
+      const eventPayload = {
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        date: formData.date,
+        location: formData.location.trim(),
+        image: formData.image.trim(),
+        ticketTypes: validTicketTypes,
+      };
+
+      abortControllerRef.current = new AbortController();
+
+      const response = await axios.post(
+        `${API_BASE_URL}/api/events`,
+        eventPayload,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          signal: abortControllerRef.current.signal,
         }
+      );
+
+      // Use non-blocking notification instead of alert
+      navigate(`/event/${response.data._id}`, { 
+        state: { message: "Event created successfully!" } 
       });
 
-      alert("Event created successfully");
-
-      navigate("/");
-
     } catch (err) {
-
-      console.error(err);
-      setError(err.response?.data?.error || "Failed to create event");
-
+      if (axios.isCancel(err)) return;
+      
+      console.error("Create event error:", err.response?.data || err.message);
+      setError(
+        err.response?.data?.error || 
+        "Failed to create event. Please try again."
+      );
     } finally {
-
       setLoading(false);
-
     }
   };
 
   return (
-
     <div className="create-event-container">
-
       <button className="back-btn" onClick={() => navigate("/")}>
-        ← Back
+        ← Back to Events
       </button>
 
       <div className="create-event-card">
+        <h1>Create New Event</h1>
 
-        <h2>Create Event</h2>
+        {error && <div className="error-message">{error}</div>}
 
-        {error && <p className="error-msg">{error}</p>}
-
-        <form onSubmit={handleCreateEvent}>
-
+        <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Event Title</label>
+            <label>Event Title *</label>
             <input
               type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              name="title"
+              value={formData.title}
+              onChange={handleChange}
+              placeholder="Annual Tech Conference 2026"
               required
             />
           </div>
@@ -96,70 +175,112 @@ export default function CreateEvent() {
           <div className="form-group">
             <label>Description</label>
             <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              required
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              placeholder="Describe your event in detail..."
+              rows="4"
+            />
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>Date & Time *</label>
+              <input
+                type="datetime-local"
+                name="date"
+                value={formData.date}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Location *</label>
+              <input
+                type="text"
+                name="location"
+                value={formData.location}
+                onChange={handleChange}
+                placeholder="Sandton Convention Centre, Johannesburg"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label>Event Image URL (optional)</label>
+            <input
+              type="url"
+              name="image"
+              value={formData.image}
+              onChange={handleChange}
+              placeholder="https://example.com/image.jpg"
             />
           </div>
 
           <div className="form-group">
-            <label>Date & Time</label>
-            <input
-              type="datetime-local"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              required
-            />
+            <label className="ticket-section-label">
+              Ticket Types *
+            </label>
+
+            {ticketTypes.map((ticket) => (
+              <div key={ticket.id} className="ticket-type-row">
+                <input
+                  type="text"
+                  placeholder="Ticket Name (e.g. VIP)"
+                  value={ticket.name}
+                  onChange={(e) => handleTicketChange(ticket.id, "name", e.target.value)}
+                  required
+                />
+                <input
+                  type="number"
+                  placeholder="Price (R)"
+                  value={ticket.price}
+                  onChange={(e) => handleTicketChange(ticket.id, "price", e.target.value)}
+                  min="0"
+                  step="0.01"
+                  required
+                />
+                <input
+                  type="number"
+                  placeholder="Available Quantity"
+                  value={ticket.quantity}
+                  onChange={(e) => handleTicketChange(ticket.id, "quantity", e.target.value)}
+                  min="1"
+                  required
+                />
+                <button
+                  type="button"
+                  className="remove-btn"
+                  onClick={() => removeTicketType(ticket.id)}
+                  aria-label="Remove ticket type"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              className="add-ticket-btn"
+              onClick={addTicketType}
+            >
+              + Add Another Ticket Type
+            </button>
           </div>
 
-          <div className="form-group">
-            <label>Location</label>
-            <input
-              type="text"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Ticket Price (R)</label>
-            <input
-              type="number"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Total Tickets</label>
-            <input
-              type="number"
-              value={tickets}
-              onChange={(e) => setTickets(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Event Poster</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setImage(e.target.files[0])}
-            />
-          </div>
-
-          <button type="submit" disabled={loading}>
-            {loading ? "Creating..." : "Create Event"}
+          <button
+            type="submit"
+            className="submit-btn"
+            disabled={loading}
+          >
+            {loading ? "Creating Event..." : "Create & Publish Event"}
           </button>
-
         </form>
-
       </div>
-
     </div>
-
   );
 }
+
+

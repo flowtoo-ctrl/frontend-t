@@ -8,6 +8,7 @@ export default function Home() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const [selectedEvent, setSelectedEvent] = useState(null); // modal state
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -24,7 +25,7 @@ export default function Home() {
   const fetchEvents = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/api/events`);
-      setEvents(response.data);
+      setEvents(response.data.events || response.data);
     } catch (error) {
       console.error('Error fetching events:', error);
     } finally {
@@ -46,7 +47,7 @@ export default function Home() {
   return (
     <div className="home">
 
-      {/* Header */}
+      {/* HEADER */}
       <header className="header">
         <div className="header-content">
           <h1>🎫 TicketHub</h1>
@@ -62,15 +63,6 @@ export default function Home() {
                 >
                   My Tickets
                 </button>
-
-                {user.role === 'admin' && (
-                  <button
-                    className="nav-btn"
-                    onClick={() => navigate('/create-event')}
-                  >
-                    Create Event
-                  </button>
-                )}
 
                 <button
                   className="nav-btn logout-btn"
@@ -100,13 +92,25 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Hero */}
+      {/* HERO */}
       <section className="hero">
         <h2>Discover Amazing Events</h2>
         <p>Browse and purchase tickets for the best events in your area.</p>
       </section>
 
-      {/* Events */}
+      {/* ADMIN BUTTON */}
+      {user && user.role === 'admin' && (
+        <div className="create-event-section">
+          <button
+            className="create-event-btn"
+            onClick={() => navigate('/create-event')}
+          >
+            + Create New Event
+          </button>
+        </div>
+      )}
+
+      {/* EVENTS */}
       <section className="events-section">
         <h3>Upcoming Events</h3>
 
@@ -118,57 +122,99 @@ export default function Home() {
               <div key={event._id} className="event-card">
 
                 {event.image && (
-                  <img src={event.image} alt={event.title} />
+                  <img
+                    src={event.image.startsWith('http')
+                      ? event.image
+                      : `${API_BASE_URL}/${event.image}`}
+                    alt={event.title}
+                  />
                 )}
 
                 <div className="event-content">
                   <h4>{event.title}</h4>
-                  <p>{event.description}</p>
+
+                  <p>
+                    {event.description?.slice(0, 100)}...
+                  </p>
 
                   <div className="event-info">
-                    <span>
-                      📅 {new Date(event.date).toLocaleDateString()}
-                    </span>
-
-                    <span>
-                      📍 {event.location}
-                    </span>
+                    <span>📅 {new Date(event.date).toLocaleDateString()}</span>
+                    <span>📍 {event.location}</span>
                   </div>
 
                   <div className="event-footer">
                     <span className="price">
-                      R {event.price.toFixed(2)}
-                    </span>
-
-                    <span
-                      className={`tickets ${
-                        event.ticketsAvailable > 0
-                          ? 'available'
-                          : 'sold-out'
-                      }`}
-                    >
-                      {event.ticketsAvailable > 0
-                        ? `${event.ticketsAvailable} tickets`
-                        : 'Sold Out'}
+                      From R {event.price ? event.price.toFixed(2) : "0.00"}
                     </span>
                   </div>
 
+                  {/* 🔥 OPEN MODAL */}
                   <button
                     className="buy-btn"
-                    disabled={event.ticketsAvailable <= 0}
-                    onClick={() => navigate(`/event/${event._id}`)}
+                    onClick={() => setSelectedEvent(event)}
                   >
-                    {event.ticketsAvailable > 0
-                      ? 'Buy Ticket'
-                      : 'Sold Out'}
+                    View Details
                   </button>
-                </div>
 
+                </div>
               </div>
             ))}
           </div>
         )}
       </section>
+
+      {/* 🔥 GLASS MODAL */}
+      {selectedEvent && (
+        <div
+          className="modal-overlay"
+          onClick={() => setSelectedEvent(null)}
+        >
+          <div
+            className="modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+
+            <button
+              className="close-btn"
+              onClick={() => setSelectedEvent(null)}
+            >
+              ✕
+            </button>
+
+            {selectedEvent.image && (
+              <img
+                src={selectedEvent.image.startsWith('http')
+                  ? selectedEvent.image
+                  : `${API_BASE_URL}/${selectedEvent.image}`}
+                alt={selectedEvent.title}
+              />
+            )}
+
+            <h2>{selectedEvent.title}</h2>
+
+            <p className="modal-description">
+              {selectedEvent.description}
+            </p>
+
+            <div className="modal-info">
+              <span>📅 {new Date(selectedEvent.date).toLocaleDateString()}</span>
+              <span>📍 {selectedEvent.location}</span>
+            </div>
+
+            <div className="modal-price">
+              From R {selectedEvent.price?.toFixed(2) || "0.00"}
+            </div>
+
+            <button
+              className="buy-btn"
+              onClick={() => navigate(`/event/${selectedEvent._id}`)}
+            >
+              Buy Ticket
+            </button>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );
